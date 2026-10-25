@@ -18,13 +18,18 @@ SPAM_KEYWORDS = re.compile(
     re.IGNORECASE
 )
 
-def is_admin(chat_id, user_id):
-    """অ্যাডমিন কিনা চেক করে"""
+def is_admin(message):
+    """অ্যাডমিন কিনা নিশ্চিত করে চেক করে"""
     try:
-        member = bot.get_chat_member(chat_id, user_id)
+        # Anonymous admin বা channel post হলে from_user নাও থাকতে পারে
+        if message.from_user is None:
+            return True
+
+        member = bot.get_chat_member(message.chat.id, message.from_user.id)
         return member.status in ["creator", "administrator"]
-    except:
-        return False
+    except Exception as e:
+        print("Admin check error:", e)
+        return True   # এরর হলে সেফ থাকার জন্য ডিলিট করবে না
 
 @bot.message_handler(content_types=["new_chat_members"])
 def welcome_new_member(message):
@@ -39,25 +44,24 @@ def welcome_new_member(message):
         except:
             pass
 
-# মিডিয়া ডিলিট (অ্যাডমিন বাদে)
+# মিডিয়া ডিলিট (অ্যাডমিন হলে কিছুই করবে না)
 @bot.message_handler(content_types=["photo", "video", "document", "voice", "video_note", "audio", "contact", "location", "poll"])
 def delete_media(message):
-    if is_admin(message.chat.id, message.from_user.id):
+    if is_admin(message):
         return
     try:
         bot.delete_message(message.chat.id, message.message_id)
     except:
         pass
 
-# টেক্সট স্প্যাম ও লিংক ডিলিট (অ্যাডমিন বাদে)
+# টেক্সট লিংক/স্প্যাম ডিলিট (অ্যাডমিন হলে কিছুই করবে না)
 @bot.message_handler(func=lambda message: True, content_types=["text"])
 def check_text(message):
-    if is_admin(message.chat.id, message.from_user.id):
+    if is_admin(message):
         return
 
     text = message.text or ""
 
-    # বাটনের টেক্সটও চেক
     if message.reply_markup:
         try:
             for row in message.reply_markup.keyboard:
