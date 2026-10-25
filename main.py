@@ -9,14 +9,22 @@ Thank you for joining the official Krira TV chat.
 Enjoy your stay! ⚽🔥"""
 
 LINK_PATTERN = re.compile(
-    r"(https?://|www\.|t\.me/|telegram\.me/|bit\.ly/|goo\.gl/|tinyurl\.|youtu\.be/|instagram\.com|facebook\.com|fb\.com|onlyfans|pornhub|xvideos|xnxx|xhamster|spankbang|redtube|youporn|chaturbate|stripchat|bongacams|livejasmin|myfreecams|cam4|adult|sex|porn|xxx)",
+    r"(https?://|www\.|t\.me/|telegram\.me/|bit\.ly/|goo\.gl/|tinyurl\.|youtu\.be/|instagram\.com|facebook\.com|fb\.com|onlyfans|pornhub|xvideos|xnxx|xhamster|spankbang|redtube|youporn|chaturbate|stripchat|bongacams|livejasmin|myfreecams|cam4|\.m3u8|\.mp4)",
     re.IGNORECASE
 )
 
 SPAM_KEYWORDS = re.compile(
-    r"(adult|massage|body\s*massage|full\s*massage|happy\s*ending|sexy\s*massage|home\s*service|call\s*girl|escort|hot\s*girl|night\s*service|full\s*service|body\s*to\s*body|online\s*models|real\s*girls|active\s*cams|meet\s*models|verified\s*girls|daily\s*live\s*shows|claim\s*free\s*access|download\s*now|instant\s*access|get\s*it\s*free|unlock\s*now|access\s*for\s*free|free\s*access|live\s*shows|cams|models|onlyfans|porn|xxx|sex\s*video|hot\s*video|nude|naked|boobs|pussy|dick|fuck|blowjob|handjob|escort\s*service|dating\s*girl|meet\s*girl|whatsapp\s*girl|telegram\s*girl)",
+    r"(adult|massage|naughty|models|cams|vip\s*girls|free\s*to\s*watch|claim\s*free|download\s*now|instant\s*access|unlock|access\s*for\s*free|live\s*shows|hot\s*girl|call\s*girl|escort|onlyfans|porn|xxx|sex|nude|naked|gái\s*xinh|ngắm|exclusive|tap\s*to\s*enter|fast\s*&\s*private|real\s*girls|verified\s*girls|online\s*models)",
     re.IGNORECASE
 )
+
+def is_admin(chat_id, user_id):
+    """অ্যাডমিন কিনা চেক করে"""
+    try:
+        member = bot.get_chat_member(chat_id, user_id)
+        return member.status in ["creator", "administrator"]
+    except:
+        return False
 
 @bot.message_handler(content_types=["new_chat_members"])
 def welcome_new_member(message):
@@ -31,35 +39,31 @@ def welcome_new_member(message):
         except:
             pass
 
-# শুধু Photo, Video, File, Voice ইত্যাদি ডিলিট (Sticker & Animation থাকবে)
+# মিডিয়া ডিলিট (অ্যাডমিন বাদে)
 @bot.message_handler(content_types=["photo", "video", "document", "voice", "video_note", "audio", "contact", "location", "poll"])
 def delete_media(message):
+    if is_admin(message.chat.id, message.from_user.id):
+        return
     try:
-        member = bot.get_chat_member(message.chat.id, message.from_user.id)
-        if member.status in ["creator", "administrator"]:
-            return
         bot.delete_message(message.chat.id, message.message_id)
     except:
         pass
 
-# টেক্সট স্প্যাম ও লিংক ডিলিট
+# টেক্সট স্প্যাম ও লিংক ডিলিট (অ্যাডমিন বাদে)
 @bot.message_handler(func=lambda message: True, content_types=["text"])
-def delete_spam_text(message):
-    try:
-        member = bot.get_chat_member(message.chat.id, message.from_user.id)
-        if member.status in ["creator", "administrator"]:
-            return
-    except:
-        pass
+def check_text(message):
+    if is_admin(message.chat.id, message.from_user.id):
+        return
 
     text = message.text or ""
 
+    # বাটনের টেক্সটও চেক
     if message.reply_markup:
         try:
             for row in message.reply_markup.keyboard:
-                for button in row:
-                    if hasattr(button, 'text') and button.text:
-                        text += " " + button.text
+                for btn in row:
+                    if hasattr(btn, "text") and btn.text:
+                        text += " " + btn.text
         except:
             pass
 
